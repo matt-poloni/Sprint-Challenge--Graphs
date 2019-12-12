@@ -12,10 +12,12 @@ class World:
         numRooms = len(roomGraph)
         rooms = [None] * numRooms
         gridSize = 1
-        for i in range(0, numRooms):
+        # Grab room IDs from graph for intermediate visuals
+        for i in roomGraph:
             x = roomGraph[i][0][0]
-            gridSize = max(gridSize, roomGraph[i][0][0], roomGraph[i][0][1])
-            self.rooms[i] = Room(f"Room {i}", f"({roomGraph[i][0][0]},{roomGraph[i][0][1]})",i, roomGraph[i][0][0], roomGraph[i][0][1])
+            y = roomGraph[i][0][1]
+            gridSize = max(gridSize, x, y)
+            self.rooms[i] = Room(f"Room {i}", f"({x},{y})",i, x, y)
         self.roomGrid = []
         gridSize += 1
         self.gridSize = gridSize
