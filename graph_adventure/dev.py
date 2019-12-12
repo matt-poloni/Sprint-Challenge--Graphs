@@ -78,21 +78,30 @@ def branch():
         rev_path = [*reversed([opposite[d] for d in path])]
         # Grab the reversed rooms that got you to the deadend
         rev_rooms = [*reversed([r for r in rooms])]
+
+
         # For each room on the way to the deadend...
-        for i, room in enumerate(rev_rooms):
+        for room in rev_rooms:
             # If that room is a branching off point...
             # (ignore zero, our starting point)
             if room != 0 and room not in visited and room in branches:
                 # For each existing branch from that room...
                 for branch in branches[room].values():
                     # Grab the following index
-                    nxt = i+1
+                    nxt = rev_rooms.index(room) + 1
                     # Insert the branched path at that index
                     rev_path[nxt:nxt] = branch['path']
                     # Insert the branched rooms at that index
                     rev_rooms[nxt:nxt] = branch['rooms']
+                    # Add all added rooms to visited
+                    for r in set(branch['rooms']):
+                        visited.add(r)
                 # Remove the branches for that room from availability
                 del branches[room]
+            # Add the room to visited
+            visited.add(room)
+
+
         # Grab the ID of the room you're returning to
         last_room = links[direction]
         # gone = rooms[0] # Just for debugging
@@ -119,6 +128,13 @@ def branch():
                     'rooms': final_rooms
                 }
             }
+# def zero_out():
+#     for (direction, links) in branches[0].items():
+#         done = set()
+#         rooms = links['rooms']
+        # for room in enumerate(rooms):
+
+
 prune()
 # print('ONES', len(ones))
 # print('TWOS', len(twos))
@@ -126,6 +142,7 @@ prune()
 while len(ones) > 0:
     branch()
     prune({**twos, **nodes})
+# zero_out()
 
 pruned = World()
 world.loadGraph({**twos, **nodes})
