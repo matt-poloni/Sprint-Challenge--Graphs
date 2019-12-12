@@ -51,30 +51,27 @@ def prune(include=None):
             # Mark as node
             nodes[id] = [xy, links]
 
-def consolidate(room, path, rooms, zero=False):
-    # If we're ignoring Room 0 and this is Room 0...
-    if zero == False and room == 0:
-        # Skip everything else
-        return path, rooms
-    # If that room is a branching off point...
-    # (ignore zero, our starting point)
-    global visited
-    if room not in visited and room in branches:
-        # For each existing branch from that room...
-        for branch in branches[room].values():
-            # Grab the following index
-            nxt = rooms.index(room) + 1
-            # Insert the branched path at that index
-            path[nxt:nxt] = branch['path']
-            # Insert the branched rooms at that index
-            rooms[nxt:nxt] = branch['rooms']
-            # Add all added rooms to visited
-            for r in set(branch['rooms']):
-                visited.add(r)
-        # Remove the branches for that room from availability
-        if room != 0: del branches[room]
-    # Add the room to visited
-    if room != 0: visited.add(room)
+def consolidate(path, rooms):
+    for room in rooms:
+        # If that room is a branching off point...
+        # (ignore zero, our starting point)
+        global visited
+        if room != 0 and room not in visited and room in branches:
+            # For each existing branch from that room...
+            for branch in branches[room].values():
+                # Grab the following index
+                nxt = rooms.index(room) + 1
+                # Insert the branched path at that index
+                path[nxt:nxt] = branch['path']
+                # Insert the branched rooms at that index
+                rooms[nxt:nxt] = branch['rooms']
+                # Add all added rooms to visited
+                for r in set(branch['rooms']):
+                    visited.add(r)
+            # Remove the branches for that room from availability
+            del branches[room]
+        # Add the room to visited
+        if room != 0: visited.add(room)
     return path, rooms
 
 def branch():
@@ -106,15 +103,8 @@ def branch():
         rev_path = [*reversed([opposite[d] for d in path])]
         # Grab the reversed rooms that got you to the deadend
         rev_rooms = [*reversed([r for r in rooms])]
-        
-
-
-        # For each room on the way to the deadend...
-        for room in rev_rooms:
-            # Consolidate any child branches
-            rev_path, rev_rooms = consolidate(room, rev_path, rev_rooms)
-
-
+        # Consolidate any child branches
+        rev_path, rev_rooms = consolidate(rev_path, rev_rooms)
         # Grab the ID of the room you're returning to
         last_room = links[direction]
         # gone = rooms[0] # Just for debugging
@@ -142,24 +132,27 @@ def branch():
                 }
             }
 
-
+# Do initial prune to sort rooms
 prune()
-# print('ONES', len(ones))
-# print('TWOS', len(twos))
-# print('NODES', len(nodes))
+# While unbranched deadends exist...
 while len(ones) > 0:
+    # Branch the deadends
     branch()
+    # And prune away new deadends
     prune({**twos, **nodes})
+# Reset the visited set
 visited = set()
+# Ensure consolidation runs at least once
 prev = inf
-print(prev)
+# While some difference is being made...
 while len(branches) < prev:
+    # Store value for reference
     prev = len(branches)
-    print(prev)
+    # Consolidate each branch off of Room 0
     for (direction, links) in branches[0].items():
         path = links['path']
         rooms = links['rooms']
-        links['path'], links['rooms'] = consolidate(0, path, rooms, True)
+        links['path'], links['rooms'] = consolidate(path, rooms)
     
 
 pruned = World()
