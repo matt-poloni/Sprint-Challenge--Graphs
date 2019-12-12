@@ -30,7 +30,7 @@ def prune(include=None):
     global twos; twos = {}
     # Reset nodes (rooms w/ > 2 links)
     global nodes; nodes = {}
-    # While there are still rooms to process
+    # While there are still rooms to process...
     while len(remaining) > 0:
         # Randomly select a remaining room
         id = remaining.pop()
@@ -49,15 +49,90 @@ def prune(include=None):
         elif num_links > 2:
             # Mark as node
             nodes[id] = [xy, links]
+def branch():
+    # While there's at least one deadend...
+    while len(ones) > 0:
+        # Reset the visited set in case it has leftover values
+        global visited; visited = set()
+        # Grab the ID and links of a random deadend
+        # (ignore coordinates)
+        id, (_, links) = ones.popitem()
+        # Grab the only direction out of the deadend
+        direction = [*links.keys()][0]
+        # Initialize path (dirs) & rooms (IDs)
+        path = [direction]
+        rooms = [id]
+        # While you're in (effectively) a hallway...
+        while (id := links[direction]) in twos:
+            # Grab exits
+            links = twos[id][1]
+            # Grab only the new direction (not where you came)
+            direction = [d for d in links.keys() if d != opposite[direction]][0]
+            # Add that direction to the path
+            path.append(direction)
+            # Add the room ID to rooms
+            rooms.append(id)
+            # Remove the room from available hallways
+            del twos[id]
+        # Grab the reversed path that got you to the deadend
+        rev_path = [*reversed([opposite[d] for d in path])]
+        # Grab the reversed rooms that got you to the deadend
+        rev_rooms = [*reversed([r for r in rooms])]
+        # For each room on the way to the deadend...
+        for i, room in enumerate(rev_rooms):
+            # If that room is a branching off point...
+            if room not in visited and room in branches:
+                # For each existing branch from that room...
+                for branch in branches[room].values():
+                    # Grab the following index
+                    nxt = i+1
+                    # Insert the branched path at that index
+                    rev_path[nxt:nxt] = branch['path']
+                    # Insert the branched rooms at that index
+                    rev_rooms[nxt:nxt] = branch['rooms']
+                # Remove the branches for that room from availability
+                del branches[room]
+        # Grab the ID of the room you're returning to
+        last_room = links[direction]
+        # gone = rooms[0] # Just for debugging
+        # Remove the pivot from the room list and add the return
+        rooms = [*rooms[1:], last_room]
+        # print(rev_path, path)
+        # print(rev_rooms, gone, rooms)
+        # Create the full-round trip path & rooms
+        final_path = [*rev_path, *path]
+        final_rooms = [*rev_rooms, *rooms]
+        # If that ID already has other branches...
+        if id in branches:
+            # Add the path & rooms in the proper direction
+            # (opposite because we just returned to that room)
+            branches[id][opposite[direction]] = {
+                'path': final_path,
+                'rooms': final_rooms
+            }
+        else:
+            # Otherwise, add the room as a branching-off point
+            branches[id] = {
+                opposite[direction]: {
+                    'path': final_path,
+                    'rooms': final_rooms
+                }
+            }
 prune()
-print('ONES', len(ones))
-print('TWOS', len(twos))
-print('NODES', len(nodes))
+# print('ONES', len(ones))
+# print('TWOS', len(twos))
+# print('NODES', len(nodes))
 while len(ones) > 0:
+    branch()
     prune({**twos, **nodes})
-print('ONES', len(ones))
-print('TWOS', len(twos))
-print('NODES', len(nodes))
+# print('ONES', len(ones))
+# print('TWOS', len(twos))
+# print('NODES', len(nodes))
+pruned = World()
+world.loadGraph({**twos, **nodes})
+world.printRooms()
+
+
 traversalPath = []
 
 
