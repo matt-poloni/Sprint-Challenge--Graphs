@@ -4,6 +4,7 @@ from world import World
 from adv import rg_3, rg_9, rg_12, rg_18, rg_500
 
 import random
+from math import inf
 
 # Load world
 world = World()
@@ -49,10 +50,37 @@ def prune(include=None):
         elif num_links > 2:
             # Mark as node
             nodes[id] = [xy, links]
+
+def consolidate(room, path, rooms, zero=False):
+    # If we're ignoring Room 0 and this is Room 0...
+    if zero == False and room == 0:
+        # Skip everything else
+        return path, rooms
+    # If that room is a branching off point...
+    # (ignore zero, our starting point)
+    global visited
+    if room not in visited and room in branches:
+        # For each existing branch from that room...
+        for branch in branches[room].values():
+            # Grab the following index
+            nxt = rooms.index(room) + 1
+            # Insert the branched path at that index
+            path[nxt:nxt] = branch['path']
+            # Insert the branched rooms at that index
+            rooms[nxt:nxt] = branch['rooms']
+            # Add all added rooms to visited
+            for r in set(branch['rooms']):
+                visited.add(r)
+        # Remove the branches for that room from availability
+        if room != 0: del branches[room]
+    # Add the room to visited
+    if room != 0: visited.add(room)
+    return path, rooms
+
 def branch():
     # While there's at least one deadend...
     while len(ones) > 0:
-        # Reset the visited set in case it has leftover values
+        # Initialize a visited set
         global visited; visited = set()
         # Grab the ID and links of a random deadend
         # (ignore coordinates)
@@ -78,28 +106,13 @@ def branch():
         rev_path = [*reversed([opposite[d] for d in path])]
         # Grab the reversed rooms that got you to the deadend
         rev_rooms = [*reversed([r for r in rooms])]
+        
 
 
         # For each room on the way to the deadend...
         for room in rev_rooms:
-            # If that room is a branching off point...
-            # (ignore zero, our starting point)
-            if room != 0 and room not in visited and room in branches:
-                # For each existing branch from that room...
-                for branch in branches[room].values():
-                    # Grab the following index
-                    nxt = rev_rooms.index(room) + 1
-                    # Insert the branched path at that index
-                    rev_path[nxt:nxt] = branch['path']
-                    # Insert the branched rooms at that index
-                    rev_rooms[nxt:nxt] = branch['rooms']
-                    # Add all added rooms to visited
-                    for r in set(branch['rooms']):
-                        visited.add(r)
-                # Remove the branches for that room from availability
-                del branches[room]
-            # Add the room to visited
-            visited.add(room)
+            # Consolidate any child branches
+            rev_path, rev_rooms = consolidate(room, rev_path, rev_rooms)
 
 
         # Grab the ID of the room you're returning to
@@ -128,11 +141,6 @@ def branch():
                     'rooms': final_rooms
                 }
             }
-# def zero_out():
-#     for (direction, links) in branches[0].items():
-#         done = set()
-#         rooms = links['rooms']
-        # for room in enumerate(rooms):
 
 
 prune()
@@ -142,7 +150,17 @@ prune()
 while len(ones) > 0:
     branch()
     prune({**twos, **nodes})
-# zero_out()
+visited = set()
+prev = inf
+print(prev)
+while len(branches) < prev:
+    prev = len(branches)
+    print(prev)
+    for (direction, links) in branches[0].items():
+        path = links['path']
+        rooms = links['rooms']
+        links['path'], links['rooms'] = consolidate(0, path, rooms, True)
+    
 
 pruned = World()
 world.loadGraph({**twos, **nodes})
@@ -151,8 +169,8 @@ world.printRooms()
 print('ONES', len(ones))
 print('TWOS', len(twos))
 print('NODES', len(nodes))
-print(branches[0])
-print(len(branches))
+# print(branches[0])
+print(len(branches), branches.keys())
 
 
 traversalPath = []
