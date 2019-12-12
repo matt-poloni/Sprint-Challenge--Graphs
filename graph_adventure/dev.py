@@ -162,8 +162,9 @@ world.printRooms()
 print('ONES', len(ones))
 print('TWOS', len(twos))
 print('NODES', len(nodes))
-# print(branches[0])
 print(len(branches), branches.keys())
+print('NON-CYCLE BRANCH',set([*branches.keys()]).difference([*twos.keys(),*nodes.keys()]))
+print('NON-BRANCH NODE',set([*twos.keys(),*nodes.keys()]).difference([*branches.keys()]))
 
 
 traversalPath = []
