@@ -81,7 +81,8 @@ def branch():
         # For each room on the way to the deadend...
         for i, room in enumerate(rev_rooms):
             # If that room is a branching off point...
-            if room not in visited and room in branches:
+            # (ignore zero, our starting point)
+            if room != 0 and room not in visited and room in branches:
                 # For each existing branch from that room...
                 for branch in branches[room].values():
                     # Grab the following index
@@ -125,12 +126,16 @@ prune()
 while len(ones) > 0:
     branch()
     prune({**twos, **nodes})
-# print('ONES', len(ones))
-# print('TWOS', len(twos))
-# print('NODES', len(nodes))
+
 pruned = World()
 world.loadGraph({**twos, **nodes})
 world.printRooms()
+
+print('ONES', len(ones))
+print('TWOS', len(twos))
+print('NODES', len(nodes))
+print(branches[0])
+print(len(branches))
 
 
 traversalPath = []
