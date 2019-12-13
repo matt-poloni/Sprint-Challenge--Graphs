@@ -4,6 +4,7 @@ from world import World
 
 import random
 from math import inf
+from timeit import default_timer as timer
 
 # You may uncomment the smaller graphs for development and testing purposes.
 
@@ -22,6 +23,7 @@ player = Player("Matt Poloni", world.startingRoom)
 
 
 # FILL THIS IN
+start = timer()
 opposite = {'n': 's', 's': 'n', 'e': 'w', 'w': 'e'}
 ones, twos, nodes, branches, cycles = {}, {}, {}, {}, {}
 visited = set()
@@ -242,6 +244,8 @@ south = branches[0]['s']['path']
 west = branches[0]['w']['path']
 east = branches[0]['e']['path']
 traversalPath = [*north, *south, *west, *east[:-136]]
+end = timer()
+print(f"{end - start} seconds")
 # print(traversalPath)
 # world.loadGraph({**ones, **twos, **nodes})
 # world.printRooms()
