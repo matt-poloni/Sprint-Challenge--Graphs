@@ -62,9 +62,14 @@ def consolidate(path, rooms):
         global visited
         # If that room is a branching off point...
         # (ignore zero, our starting point)
-        if room != 0 and room not in visited and room in branches:
+        if room != 0 and room not in visited and (room in branches or room in cycles):
+            values = []
+            if room in branches:
+                values.extend(branches[room].values())
+            if room in cycles:
+                values.extend(cycles[room].values())
             # For each existing branch from that room...
-            for branch in branches[room].values():
+            for branch in values:
                 # Grab the following index
                 nxt = rooms.index(room) + 1
                 # Insert the branched path at that index
@@ -75,7 +80,10 @@ def consolidate(path, rooms):
                 for r in set(branch['rooms']):
                     visited.add(r)
             # Remove the branches for that room from availability
-            del branches[room]
+            if room in branches:
+                del branches[room]
+            if room in cycles:
+                del cycles[room]
         # Add the room to visited
         if room != 0: visited.add(room)
     return path, rooms
@@ -171,8 +179,10 @@ def cycle():
                     del twos[room]
                 # Store the cycle in cycles
                 cycles[id] = {
-                    'path': [*path, d],
-                    'rooms': [*rooms, current]
+                    direction: {
+                        'path': [*path, d],
+                        'rooms': [*rooms, current]
+                    }
                 }
                 # Delete the covered directions from links
                 del links[direction]
@@ -200,6 +210,7 @@ while len(nodes) > 0:
         branch()
     cycle()
 
+# =========================
 # Almost-manual manipulation b/t 0 and eastern neighbor 1
 branches[0]['w'] = {
     'path': branches[1]['w']['path'][1:-1],
@@ -210,17 +221,53 @@ branches[0]['e'] = {
     'rooms': [1, *branches[1]['e']['rooms'] , 0]
 }
 del branches[1]
-
+# Consolidate branches into cycles, which become branches
+visited = set()
+path, rooms = consolidate(cycles[6]['s']['path'], cycles[6]['s']['rooms'])
+branches[6] = {'s': {'path': path, 'rooms': rooms}}
+visited = set()
+path, rooms = consolidate(cycles[121]['n']['path'], cycles[121]['n']['rooms'])
+branches[121] = {'n': {'path': path, 'rooms': rooms}}
+# Almost manually consolidate each side of last hallway into branches
+path = ['n','n','w','n','n','e','n','n','n','n','s','s','s','s','w','s','s','e','s']
+rooms = [7,9,13,14,17,28,60,64,111,121,111,64,60,28,17,14,13,9,7]
+visited = set()
+path, rooms = consolidate(path, rooms)
+branches[1] = {'n': {'path': path, 'rooms': rooms}}
+path = ['s','s','w','e','n']
+rooms = [2,5,6,5,2]
+visited = set()
+path, rooms = consolidate(path, rooms)
+branches[1] = {**branches[1], 's': {'path': path, 'rooms': rooms}}
+# Final consolidation of remaining branch into 0
+path = branches[0]['e']['path']
+rooms = branches[0]['e']['rooms']
+path, rooms = consolidate(path, rooms)
+branches[0]['e'] = {'path': path, 'rooms': rooms}
+# Assemble traversal path
+north = branches[0]['n']['path']
+south = branches[0]['s']['path']
+east = branches[0]['e']['path']
+west = branches[0]['w']['path']
+traversalPath = [*north, *south, *east, *west]
 
 world.loadGraph({**ones, **twos, **nodes})
 world.printRooms()
 
-print('BRANCHES', len(branches), sorted([*branches.keys()]))
-print('CYCLES', len(cycles), cycles)
-print([len(d['path']) for d in branches[0].values()])
 
-
-traversalPath = []
+visited_rooms = set()
+player.currentRoom = world.startingRoom
+visited_rooms.add(player.currentRoom)
+steps = 0
+for move in traversalPath:
+    steps += 1
+    player.travel(move)
+    visited_rooms.add(player.currentRoom)
+    if len(visited_rooms) == len(world.rooms):
+        traversalPath = traversalPath[:steps]
+        print('FINAL PATH', traversalPath)
+        print('TOTAL STEPS', steps)
+        break
 
 
 # TRAVERSAL TEST
