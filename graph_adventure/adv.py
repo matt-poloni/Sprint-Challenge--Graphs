@@ -59,7 +59,7 @@ def prune(include=None):
 
 def consolidate(path, rooms):
     for room in rooms:
-        global visited
+        global visited; visited = set()
         # If that room is a branching off point...
         # (ignore zero, our starting point)
         if room != 0 and room not in visited and (room in branches or room in cycles):
@@ -217,57 +217,34 @@ branches[0]['w'] = {
     'rooms': branches[1]['w']['rooms'][1:-1]
 }
 branches[0]['e'] = {
-    'path': ['e', *branches[1]['e']['path'] , 'w'],
-    'rooms': [1, *branches[1]['e']['rooms'] , 0]
+    'path': ['e', *branches[1]['e']['path'], 'w'],
+    'rooms': [1, *branches[1]['e']['rooms'], 0]
 }
 del branches[1]
 # Consolidate branches into cycles, which become branches
-visited = set()
 path, rooms = consolidate(cycles[6]['s']['path'], cycles[6]['s']['rooms'])
 branches[6] = {'s': {'path': path, 'rooms': rooms}}
-visited = set()
 path, rooms = consolidate(cycles[121]['n']['path'], cycles[121]['n']['rooms'])
 branches[121] = {'n': {'path': path, 'rooms': rooms}}
 # Almost manually consolidate each side of last hallway into branches
-path = ['n','n','w','n','n','e','n','n','n','n','s','s','s','s','w','s','s','e','s']
-rooms = [7,9,13,14,17,28,60,64,111,121,111,64,60,28,17,14,13,9,7]
-visited = set()
+path = ['e','w','s','s','w','e','n','n','n','n','w','n','n','e','n','n','n','n','s','s','s','s','w','s','s','e','s','s']
+rooms = [22,1,2,5,6,5,2,1,7,9,13,14,17,28,60,64,111,121,111,64,60,28,17,14,13,9,7,1]
 path, rooms = consolidate(path, rooms)
 branches[1] = {'n': {'path': path, 'rooms': rooms}}
-path = ['s','s','w','e','n']
-rooms = [2,5,6,5,2]
-visited = set()
-path, rooms = consolidate(path, rooms)
-branches[1] = {**branches[1], 's': {'path': path, 'rooms': rooms}}
 # Final consolidation of remaining branch into 0
-path = branches[0]['e']['path']
-rooms = branches[0]['e']['rooms']
+path = ['e','w']
+rooms = [1,0]
 path, rooms = consolidate(path, rooms)
 branches[0]['e'] = {'path': path, 'rooms': rooms}
 # Assemble traversal path
 north = branches[0]['n']['path']
 south = branches[0]['s']['path']
-east = branches[0]['e']['path']
 west = branches[0]['w']['path']
-traversalPath = [*north, *south, *east, *west]
-
-world.loadGraph({**ones, **twos, **nodes})
-world.printRooms()
-
-
-visited_rooms = set()
-player.currentRoom = world.startingRoom
-visited_rooms.add(player.currentRoom)
-steps = 0
-for move in traversalPath:
-    steps += 1
-    player.travel(move)
-    visited_rooms.add(player.currentRoom)
-    if len(visited_rooms) == len(world.rooms):
-        traversalPath = traversalPath[:steps]
-        print('FINAL PATH', traversalPath)
-        print('TOTAL STEPS', steps)
-        break
+east = branches[0]['e']['path']
+traversalPath = [*north, *south, *west, *east]
+# print(traversalPath)
+# world.loadGraph({**ones, **twos, **nodes})
+# world.printRooms()
 
 
 # TRAVERSAL TEST
@@ -286,9 +263,9 @@ else:
 
 
 
-#######
+# ######
 # UNCOMMENT TO WALK AROUND
-#######
+# ######
 # player.currentRoom.printRoomDescription(player)
 # while True:
 #     cmds = input("-> ").lower().split(" ")
