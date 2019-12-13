@@ -163,9 +163,11 @@ def cycle():
             # If the current room is where we started...
             if current == id:
                 # Remove rooms on path from hallways
+                print(rooms)
                 for room in rooms:
                     del twos[room]
                 # Store the cycle in cycles
+                print(id)
                 cycles[id] = {
                     'path': [*path, d],
                     'rooms': [*rooms, current]
@@ -174,6 +176,7 @@ def cycle():
                 del links[direction]
                 del links[opposite[d]]
         # If the node is no longer a node...
+        print(len(links))
         if (length := len(links)) < 3:
             # Store it temporarily
             temp = nodes[id]
@@ -184,11 +187,10 @@ def cycle():
                 twos[id] = temp
             # Or a deadend
             if length == 1:
+                print('FOOBAR', id)
                 ones[id] = temp
-    visited = set()
-    # And prune away new deadends
-    prune({**twos, **nodes})
 
+# =========================
 # Do initial prune to sort rooms
 prune()
 while len(nodes) > 0:
@@ -209,16 +211,15 @@ branches[0]['e'] = {
 }
 del branches[1]
 
-pruned = World()
-world.loadGraph({**twos, **nodes})
+
+world.loadGraph({**ones, **twos, **nodes})
 world.printRooms()
 
-print('ONES', len(ones))
+print('ONES', len(ones), sorted([*ones.keys()]))
 print('TWOS', len(twos), sorted([*twos.keys()]))
 print('NODES', len(nodes), sorted([*nodes.keys()]))
 print('BRANCHES', len(branches), sorted([*branches.keys()]))
-print('NON-CYCLE BRANCH',set([*branches.keys()]).difference([*twos.keys(),*nodes.keys()]))
-print('NON-BRANCH NODE',sorted(set([*twos.keys(),*nodes.keys()]).difference([*branches.keys()])))
+print('CYCLES', len(cycles), cycles)
 print([len(d['path']) for d in branches[0].values()])
 
 
