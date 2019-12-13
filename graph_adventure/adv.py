@@ -241,10 +241,24 @@ north = branches[0]['n']['path']
 south = branches[0]['s']['path']
 west = branches[0]['w']['path']
 east = branches[0]['e']['path']
-traversalPath = [*north, *south, *west, *east]
+traversalPath = [*north, *south, *west, *east[:-136]]
 # print(traversalPath)
 # world.loadGraph({**ones, **twos, **nodes})
 # world.printRooms()
+
+
+# visited_rooms = set()
+# player.currentRoom = world.startingRoom
+# visited_rooms.add(player.currentRoom)
+# steps = 0
+# for move in traversalPath:
+#     steps += 1
+#     player.travel(move)
+#     visited_rooms.add(player.currentRoom)
+#     if len(visited_rooms) == 500:
+#         unneeded = len(traversalPath) - steps
+#         print(unneeded)
+#         break
 
 
 # TRAVERSAL TEST
