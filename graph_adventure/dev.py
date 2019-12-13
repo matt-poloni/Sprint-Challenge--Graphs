@@ -53,9 +53,9 @@ def prune(include=None):
 
 def consolidate(path, rooms):
     for room in rooms:
+        global visited
         # If that room is a branching off point...
         # (ignore zero, our starting point)
-        global visited
         if room != 0 and room not in visited and room in branches:
             # For each existing branch from that room...
             for branch in branches[room].values():
@@ -131,40 +131,95 @@ def branch():
                     'rooms': final_rooms
                 }
             }
+    visited = set()
+    # And prune away new deadends
+    prune({**twos, **nodes})
+
+def cycle():
+    # Grab nodes to iterate over
+    iter_nodes = {**nodes}
+    # For each node...
+    for id in iter_nodes:
+        # Grab its links
+        links = nodes[id][1]
+        # Create a copy to iterate over
+        iter_links = {**links}
+        # For each direction available...
+        for direction in iter_links:
+            dirs = iter_links
+            # Grab the direction
+            d = direction
+            # Initialize path and rooms
+            path, rooms = [], []
+            # While in a hallway (effectively)...
+            while (current := dirs[d]) in twos:
+                # Append to path & rooms
+                path.append(d)
+                rooms.append(current)
+                # Grab new available directions
+                dirs = twos[current][1]
+                # Filter out the direction we just came from
+                d = [l for l in dirs.keys() if l != opposite[d]][0]
+            # If the current room is where we started...
+            if current == id:
+                # Remove rooms on path from hallways
+                for room in rooms:
+                    del twos[room]
+                # Store the cycle in cycles
+                cycles[id] = {
+                    'path': [*path, d],
+                    'rooms': [*rooms, current]
+                }
+                # Delete the covered directions from links
+                del links[direction]
+                del links[opposite[d]]
+        # If the node is no longer a node...
+        if (length := len(links)) < 3:
+            # Store it temporarily
+            temp = nodes[id]
+            # Remove it from nodes
+            del nodes[id]
+            # And either reclassify it as a hallway
+            if length == 2:
+                twos[id] = temp
+            # Or a deadend
+            if length == 1:
+                ones[id] = temp
+    visited = set()
+    # And prune away new deadends
+    prune({**twos, **nodes})
 
 # Do initial prune to sort rooms
 prune()
-# While unbranched deadends exist...
-while len(ones) > 0:
-    # Branch the deadends
-    branch()
-    # And prune away new deadends
-    prune({**twos, **nodes})
-# Reset the visited set
-visited = set()
-# Ensure consolidation runs at least once
-prev = inf
-# While some difference is being made...
-while len(branches) < prev:
-    # Store value for reference
-    prev = len(branches)
-    # Consolidate each branch off of Room 0
-    for (direction, links) in branches[0].items():
-        path = links['path']
-        rooms = links['rooms']
-        links['path'], links['rooms'] = consolidate(path, rooms)
-    
+while len(nodes) > 0:
+    # While unbranched deadends exist...
+    while len(ones) > 0:
+        # Branch the deadends
+        branch()
+    cycle()
+
+# Almost-manual manipulation b/t 0 and eastern neighbor 1
+branches[0]['w'] = {
+    'path': branches[1]['w']['path'][1:-1],
+    'rooms': branches[1]['w']['rooms'][1:-1]
+}
+branches[0]['e'] = {
+    'path': ['e', *branches[1]['e']['path'] , 'w'],
+    'rooms': [1, *branches[1]['e']['rooms'] , 0]
+}
+del branches[1]
 
 pruned = World()
 world.loadGraph({**twos, **nodes})
 world.printRooms()
 
 print('ONES', len(ones))
-print('TWOS', len(twos))
-print('NODES', len(nodes))
-print(len(branches), branches.keys())
+print('TWOS', len(twos), sorted([*twos.keys()]))
+print('NODES', len(nodes), sorted([*nodes.keys()]))
+print('BRANCHES', len(branches), sorted([*branches.keys()]))
 print('NON-CYCLE BRANCH',set([*branches.keys()]).difference([*twos.keys(),*nodes.keys()]))
-print('NON-BRANCH NODE',set([*twos.keys(),*nodes.keys()]).difference([*branches.keys()]))
+print('NON-BRANCH NODE',sorted(set([*twos.keys(),*nodes.keys()]).difference([*branches.keys()])))
+print([len(d['path']) for d in branches[0].values()])
 
 
 traversalPath = []
